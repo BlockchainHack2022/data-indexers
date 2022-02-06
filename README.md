@@ -1,54 +1,50 @@
-# Moscow blockchain hackathon tutorial
+# Moscow blockchain hackathon
 
-Template for FluenceJS applications running on nodejs.
+## Problem setting
 
-Useful resources:
+Lightweight blockchain clients, such as mobile wallet apps, 
+want fast and granular access to blockchain data.
 
--   [How to hack on Fluence](https://cutt.ly/HackMoscow)
--   [Aqua documentation](https://doc.fluence.dev/aqua-book/)
--   [FluenceJS documentation](https://doc.fluence.dev/docs/fluence-js)
--   [More examples](https://github.com/fluencelabs/examples)
+They can't afford inspection of every chain block and always staying online,
+which means that such clients must rely on external `"web 2.0"` indexing services,
+which in turn means, that we have a problem of centralization and single point of trust.
 
-## Prerequisites
+This problem probably doesn't have complete and universal solution.
 
-nodejs v16.04+ installed
+## Submission
 
-## Installation
+This project implements a sketch of a scenario when lightweight client sends multiple
+identical requests to hopefully independent data providers, it
+than compares responses and selects the one by a simple majority rule.
 
-To install dependencies:
+### Project structure
 
-```bash
-npm i
-```
+* [src/indexers.ts](src/indexers.ts) - starts multiple peers which host an indexer service mockup
+* [src/client.ts](src/client.ts) - performs a request to indexing services simulating the behaviour of a lightweight client.
+* [aqua](aqua) - the aqua code which implements service discovery and request logic.
 
-## Building and running
-
-To start application:
-
-```bash
-npm start
-```
-
-The start script will compile the aqua code and run the `index.ts` file using `ts-node`
-
-It might be useful to have continuous aqua files recompilation on each file save (e.g to have shorted dev feedback cycles). To do so execute:
+### Running
 
 ```bash
-npm run watch-aqua
+make # compile the code
+node lib/indexers.js # start indexers
+node lib/client.js # perform client request
 ```
 
-For single recompilation execute:
+## Future work
 
-```bash
-npm run compile-aqua
-```
+The above scenario is clearly problematic as 
+it implies a significant amount of duplicated work. It also implies a higher latency, 
+but we think it is not a problem, as applications
+can often proceed optimistically given the first received result and notify users later in case of a conflict.
 
-## Project structure
+We suggest that in some cases the problem of work duplication can be solved by deferring and batching 
+the verification of query results. In this scenario the lightweight client explicitly connects to the 
+single chosen data provider and works with it in a completely "web 2.0" manner proceeding 
+optimistically after each query. The lightweight client will query a special parachain, to which 
+all data providers belong, to verify the results of submitted queries. The hope is that batch processing
+of queries could be much more efficient and validators will have easy time verifying results.
 
-All aqua code is placed in `aqua` directory. The TypeScript files are located in `src (by aqua)` directory as usual. The compiled (by aqua) TypeScript code goes into `src/_aqua` directory. This one should (and in fact is) be gitignored.
-
-`package.json` contains some useful scripts to work with aqua compiler.
-
-## Using FluenceJS in browser
-
-You are free to use the UI framework of your choosing. Bootstrap the application and then install the same dependencies and set up the compiler. You can also refer to the [related documentation](https://doc.fluence.dev/docs/fluence-js/2_basics) section. Also you need to configure the http server, hosting you application code to serve additional files. You can read about it in the (documentation)[https://doc.fluence.dev/docs/fluence-js/4_run_in_browser-1]
+The above scenario might also simplify per-request monetization, 
+as client could simply lock a certain amount of money in advance and give a data provider NFT, which
+authorizes its spending in case data provider's work was proved by parachain.
