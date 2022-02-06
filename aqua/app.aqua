@@ -1,0 +1,66 @@
+module App declares Indexer, Tools
+import initTopic, findSubscribers, subscribe, getNeighbours from "@fluencelabs/aqua-dht/pubsub.aqua"
+import "@fluencelabs/aqua-dht/dht.aqua"
+import "@fluencelabs/aqua-lib/builtin"
+export Indexer, Tools, initIndexerTopic, advertiseMyselfAsIndexer, get_balance, get_balance_from_peer, get_indexers
+
+
+alias PeerId: string
+alias Balance: string
+alias Error: string
+
+
+service Indexer("indexer"):
+    get_balance(account: string) -> Balance
+
+
+service Tools("tools"):
+    select_best_result(balances: []Balance) -> Balance
+
+
+const TOPIC = "-indexer-"
+
+
+func initIndexerTopic() -> string:
+    status: *string
+    on HOST_PEER_ID:
+        nodes <- getNeighbours(TOPIC)
+        for n <- nodes par:
+            on n:
+                try:
+                    t <- Peer.timestamp_sec()
+                    AquaDHT.register_key(TOPIC, t, false, 0)
+                    status <<- "ok"
+    <- status!0
+
+
+func advertiseMyselfAsIndexer():
+    relay_id: ?string
+    relay_id <<- HOST_PEER_ID
+    subscribe(TOPIC, "foo", relay_id, nil)
+
+
+func get_balance(account: string) -> Balance:
+    results: *string
+    on HOST_PEER_ID:
+        subscribers <- findSubscribers(TOPIC)
+        for sub <- subscribers par:
+            on sub.peer_id via sub.relay_id:
+                try:
+                    results <- Indexer.get_balance(account)
+    res: *Balance
+    join results[3]
+    res <- Tools.select_best_result(results)
+    par res <- Peer.timeout(5000, "error: timeout")
+    <- res!0
+
+
+func get_balance_from_peer(account: string, peer: PeerId, relay: PeerId) -> Balance:
+    on peer via relay:
+        res <- Indexer.get_balance(account)
+        <- res
+
+
+func get_indexers() -> []Record:
+    res <- findSubscribers(TOPIC)
+    <- res

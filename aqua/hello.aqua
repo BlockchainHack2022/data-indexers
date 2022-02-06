@@ -1,4 +1,0 @@
-module Hello declares Hello
-
-service Hello("hello"):
-    greet() -> string

@@ -4,7 +4,7 @@ build: aqua
 
 
 aqua:
-	@npx aqua -i ./aqua/ -o ./src/aqua
+	@rm -rf src/aqua && npx aqua -i ./aqua/ -o ./src/aqua
 
 
 watch-aqua:

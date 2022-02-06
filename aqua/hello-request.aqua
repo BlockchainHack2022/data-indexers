@@ -1,9 +1,0 @@
-module HelloRequest declares hello
-import Hello from "./hello.aqua"
-
-export hello
-
-func hello(peer: string, relay: string) -> string:
-    on peer via relay:
-        res <- Hello.greet()
-    <- res

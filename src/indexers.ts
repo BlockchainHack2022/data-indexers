@@ -1,6 +1,7 @@
 import {FluencePeer} from '@fluencelabs/fluence'
 import {krasnodar} from '@fluencelabs/fluence-network-environment'
-import {registerHello} from "./aqua/hello"
+import assert from "assert"
+import {advertiseMyselfAsIndexer, initIndexerTopic, registerIndexer} from "./aqua/app"
 import {getKeyPair, SECRETS} from "./secret"
 const relay = krasnodar[8]
 
@@ -15,11 +16,18 @@ async function main() {
             connectTo: relay
         })
 
-        registerHello(peer, {
-            greet() {
-                return Promise.resolve('Hello world!')
+        if (i == 0) {
+            let initStatus = await initIndexerTopic(peer)
+            assert(initStatus == 'ok')
+        }
+
+        registerIndexer(peer, {
+            get_balance(account: string) {
+                return '10'
             }
         })
+
+        await advertiseMyselfAsIndexer(peer)
 
         console.log('started: ' + peer.getStatus().peerId)
     }
